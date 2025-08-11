@@ -56,31 +56,31 @@ jobs:
           ls | grep "windows" | awk '{ print "cp -r scripts/*.bat "$0"" | "/bin/bash" }'
 
       - name: Upload artifacts linux_amd64
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4 # 更改为 v4
         with:
           name: aoaostar_mooc_linux_amd64
           path: aoaostar_mooc_linux_amd64
 
       - name: Upload artifacts linux_arm64
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4 # 更改为 v4
         with:
           name: aoaostar_mooc_linux_arm64
           path: aoaostar_mooc_linux_arm64
 
       - name: Upload artifacts linux_arm
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4 # 更改为 v4
         with:
           name: aoaostar_mooc_linux_arm
           path: aoaostar_mooc_linux_arm
 
       - name: Upload artifacts windows_amd64
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4 # 更改为 v4
         with:
           name: aoaostar_mooc_windows_amd64
           path: aoaostar_mooc_windows_amd64
 
       - name: Upload artifacts linux_386
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4 # 更改为 v4
         with:
           name: aoaostar_mooc_linux_386
           path: aoaostar_mooc_linux_386
