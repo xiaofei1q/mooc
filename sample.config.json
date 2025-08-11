@@ -8,7 +8,8 @@
       "base_url": "https://mooc.yinghuaonline.com/",
       "school_id": 0,
       "username": "username",
-      "password": "password"
+      "password": "password",
+      "course_names": ["C语言程序设计基础", "高等数学"]  
     }
   ]
 }

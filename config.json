@@ -1,0 +1,22 @@
+{
+  "global": {
+    "server": ":10086",
+    "limit": 3
+  },
+  "users": [
+    {
+      "base_url": "",
+      "school_id": 0,
+      "username": "",
+      "password": "",
+      "course_names": ["C语言程序设计基础", "高等数学"]
+    },
+    {
+      "base_url": "",
+      "school_id": 0,
+      "username": "",
+      "password": "",
+      "course_names": ["服务学习"]
+    }
+  ]
+}

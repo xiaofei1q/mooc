@@ -11,6 +11,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/sirupsen/logrus"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -82,6 +83,24 @@ func (i *YingHua) GetCourses() error {
 	}
 	i.Courses = resp.Result.List
 	return nil
+}
+
+// GetCourseByName 根据课程名称查找课程（模糊匹配）
+func (i *YingHua) GetCourseByName(name string) ([]types.CoursesList, error) {
+	if len(i.Courses) == 0 {
+		if err := i.GetCourses(); err != nil {
+			return nil, err
+		}
+	}
+
+	var result []types.CoursesList
+	for _, course := range i.Courses {
+		if strings.Contains(strings.ToLower(course.Name), strings.ToLower(name)) {
+			result = append(result, course)
+		}
+	}
+
+	return result, nil
 }
 
 func (i *YingHua) GetChapters(course types.CoursesList) ([]types.ChaptersList, error) {

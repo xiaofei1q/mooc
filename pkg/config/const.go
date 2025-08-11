@@ -9,12 +9,13 @@ type Global struct {
 	Limit  int    `json:"limit"`
 }
 type User struct {
-	BaseURL  string `json:"base_url"`
-	SchoolID int    `json:"school_id"`
-	Username string `json:"username"`
-	Password string `json:"password"`
+	BaseURL    string   `json:"base_url"`
+	SchoolID   int      `json:"school_id"`
+	Username   string   `json:"username"`
+	Password   string   `json:"password"`
+	CourseNames []string `json:"course_names"`
 }
 
 var Conf Config
 
-const VERSION = "v1.3.2"
+const VERSION = "v1.3.3plus"
