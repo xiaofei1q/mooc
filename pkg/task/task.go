@@ -2,12 +2,13 @@ package task
 
 import (
 	"fmt"
+	"math"
+	"sync"
+
 	"github.com/aoaostar/mooc/pkg/config"
 	"github.com/aoaostar/mooc/pkg/yinghua"
 	"github.com/aoaostar/mooc/pkg/yinghua/types"
 	"github.com/sirupsen/logrus"
-	"math"
-	"sync"
 )
 
 type Task struct {

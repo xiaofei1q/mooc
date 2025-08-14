@@ -3,9 +3,10 @@ package bootstrap
 import (
 	"encoding/json"
 	"errors"
-	"github.com/aoaostar/mooc/pkg/config"
 	"io"
 	"os"
+
+	"github.com/aoaostar/mooc/pkg/config"
 )
 
 func InitConfig() error {

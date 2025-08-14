@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	browser "github.com/EDDYCJY/fake-useragent"
 	"github.com/aoaostar/mooc/pkg/config"
 	"github.com/aoaostar/mooc/pkg/util"
 	"github.com/aoaostar/mooc/pkg/yinghua/types"
 	"github.com/go-resty/resty/v2"
 	"github.com/sirupsen/logrus"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type YingHua struct {
@@ -24,7 +25,14 @@ type YingHua struct {
 func New(user config.User) *YingHua {
 
 	var client = resty.New()
-	client.SetBaseURL(user.BaseURL)
+
+	// 确保BaseURL包含协议前缀
+	baseURL := user.BaseURL
+	if !strings.HasPrefix(baseURL, "http://") && !strings.HasPrefix(baseURL, "https://") {
+		baseURL = "http://" + baseURL
+	}
+
+	client.SetBaseURL(baseURL)
 	client.SetRetryCount(3)
 	client.SetHeader("user-agent", browser.Mobile())
 	return &YingHua{
@@ -124,32 +132,35 @@ func (i *YingHua) GetChapters(course types.CoursesList) ([]types.ChaptersList, e
 }
 
 func (i *YingHua) StudyCourse(course types.CoursesList) error {
+	i.Output(fmt.Sprintf("开始学习课程: [%s][courseId=%d]", course.Name, course.ID))
 	chapters, err := i.GetChapters(course)
 	if err != nil {
+		i.OutputWith(fmt.Sprintf("获取课程章节失败: %s", err.Error()), logrus.Errorf)
 		return err
 	}
 	for _, chapter := range chapters {
-		i.StudyChapter(chapter)
+		i.StudyChapter(chapter, course.Name)
 	}
 
+	i.Output(fmt.Sprintf("课程学习完成: [%s][courseId=%d]", course.Name, course.ID))
 	return nil
 }
 
-func (i *YingHua) StudyChapter(chapter types.ChaptersList) {
+func (i *YingHua) StudyChapter(chapter types.ChaptersList, courseName string) {
 
-	i.Output(fmt.Sprintf("当前第 %d 章, [%s][chapterId=%d]", chapter.Idx, chapter.Name, chapter.ID))
+	i.Output(fmt.Sprintf("课程: [%s] 当前第 %d 章, [%s][chapterId=%d]", courseName, chapter.Idx, chapter.Name, chapter.ID))
 	for _, node := range chapter.NodeList {
 		// 试题跳过
 		if node.TabVideo {
-			i.StudyNode(node)
+			i.StudyNode(node, courseName, chapter.Name)
 		}
 	}
 
 }
 
-func (i *YingHua) StudyNode(node types.ChaptersNodeList) {
+func (i *YingHua) StudyNode(node types.ChaptersNodeList, courseName string, chapterName string) {
 startStudy:
-	i.Output(fmt.Sprintf("当前第 %d 课, [%s][nodeId=%d]", node.Idx, node.Name, node.ID))
+	i.Output(fmt.Sprintf("课程: [%s] 章节: [%s] 当前第 %d 课, [%s][nodeId=%d]", courseName, chapterName, node.Idx, node.Name, node.ID))
 	var studyTime = 1
 	var studyId = 0
 	var nodeProgress = types.NodeVideoData{
@@ -163,7 +174,7 @@ startStudy:
 			var err error
 			nodeProgress, err = i.GetNodeProgress(node)
 			if err != nil {
-				i.OutputWith(fmt.Sprintf("%s[nodeId=%d], %s[studyId=%d]", node.Name, node.ID, err.Error(), studyId), logrus.Errorf)
+				i.OutputWith(fmt.Sprintf("课程: [%s] 章节: [%s] %s[nodeId=%d], %s[studyId=%d]", courseName, chapterName, node.Name, node.ID, err.Error(), studyId), logrus.Errorf)
 				flag = false
 				break
 			}
@@ -196,7 +207,7 @@ startStudy:
 			continue
 		}
 		if resp.Code != 0 {
-			i.OutputWith(fmt.Sprintf("%s[nodeId=%d], %s[studyId=%d][studyTime=%d]", node.Name, node.ID, resp.Msg, studyId, studyTime), logrus.Errorf)
+			i.OutputWith(fmt.Sprintf("课程: [%s] 章节: [%s] %s[nodeId=%d], %s[studyId=%d][studyTime=%d]", courseName, chapterName, node.Name, node.ID, resp.Msg, studyId, studyTime), logrus.Errorf)
 			if resp.NeedCode {
 				formData["code"] = i.FuckCaptcha() + "_"
 				goto captcha
@@ -212,10 +223,10 @@ startStudy:
 		parseFloat, err := strconv.ParseFloat(nodeProgress.StudyTotal.Progress, 64)
 
 		if err != nil {
-			i.OutputWith(fmt.Sprintf("%s[nodeId=%d], %s[studyId=%d]", node.Name, node.ID, err.Error(), studyId), logrus.Errorf)
+			i.OutputWith(fmt.Sprintf("课程: [%s] 章节: [%s] %s[nodeId=%d], %s[studyId=%d]", courseName, chapterName, node.Name, node.ID, err.Error(), studyId), logrus.Errorf)
 			continue
 		}
-		i.Output(fmt.Sprintf("%s[nodeId=%d], %s[studyId=%d], 当前进度: %.f%%", node.Name, node.ID, resp.Msg, studyId, parseFloat*100))
+		i.Output(fmt.Sprintf("课程: [%s] 章节: [%s] %s[nodeId=%d], %s[studyId=%d], 当前进度: %.f%%", courseName, chapterName, node.Name, node.ID, resp.Msg, studyId, parseFloat*100))
 		studyTime += 10
 		time.Sleep(time.Second * 10)
 	}

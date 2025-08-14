@@ -1,22 +1,21 @@
 {
   "global": {
     "server": ":10086",
-    "limit": 3
+    "limit": 999
   },
   "users": [
     {
-      "base_url": "",
+      "base_url": "https://test-server.example.com/",
       "school_id": 0,
-      "username": "",
-      "password": "",
-      "course_names": ["C语言程序设计基础", "高等数学"]
-    },
-    {
-      "base_url": "",
+      "username": "test_user1",
+      "password": "test_password1",
+      "course_names": []
+    },{
+      "base_url": "https://test-server.example.com/",
       "school_id": 0,
-      "username": "",
-      "password": "",
-      "course_names": ["服务学习"]
+      "username": "test_user2",
+      "password": "test_password2",
+      "course_names": []
     }
   ]
 }
