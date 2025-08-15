@@ -2,19 +2,35 @@ package bootstrap
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
+	"os/exec"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/aoaostar/mooc/pkg/config"
+	"github.com/aoaostar/mooc/pkg/task"
 	"github.com/aoaostar/mooc/pkg/util"
 	"github.com/aoaostar/mooc/pkg/yinghua"
 	"github.com/aoaostar/mooc/pkg/yinghua/types"
 	"github.com/sirupsen/logrus"
-	"io"
-	"net/http"
-	"os"
-	"strconv"
-	"strings"
-	"net/url"
 )
 
+// 程序运行状态管理
+var (
+	programStatus struct {
+		isRunning bool
+		cmd       *exec.Cmd
+		mu        sync.Mutex
+	}
+)
+
+// InitWeb 初始化Web服务
 func InitWeb() {
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 
@@ -35,16 +51,19 @@ func InitWeb() {
 
 	})
 	http.HandleFunc("/ajax", func(writer http.ResponseWriter, request *http.Request) {
+		// 获取当前日期，格式为2006-01-02
+		currentDate := time.Now().Format("2006-01-02")
+		logFilePath := fmt.Sprintf("./logs/aoaostar-%s.log", currentDate)
 
-	text, err := util.ReadText("./logs/aoaostar.log", 0, 100)
-	if err != nil {
-		logrus.Error(err)
+		text, err := util.ReadText(logFilePath, 0, 100)
+		if err != nil {
+			logrus.Error(err)
 
-	}
-	_, err = io.WriteString(writer, strings.Join(text, "\n"))
-	if err != nil {
-		logrus.Error(err)
-	}
+		}
+		_, err = io.WriteString(writer, strings.Join(text, "\n"))
+		if err != nil {
+			logrus.Error(err)
+		}
 
 	})
 
@@ -115,7 +134,7 @@ func InitWeb() {
 		json.NewEncoder(writer).Encode(targetCourse)
 	})
 
-		// 添加通过课程名称获取课程的API接口
+	// 添加通过课程名称获取课程的API接口
 	http.HandleFunc("/course/name/", func(writer http.ResponseWriter, request *http.Request) {
 		// 设置允许跨域
 		writer.Header().Set("Access-Control-Allow-Origin", "*")
@@ -180,10 +199,222 @@ func InitWeb() {
 		json.NewEncoder(writer).Encode(targetCourses)
 	})
 
+	// 保存配置接口
+	http.HandleFunc("/save-config", func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodPost {
+			writer.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		// 解析请求体
+		var newConfig config.Config
+		if err := json.NewDecoder(request.Body).Decode(&newConfig); err != nil {
+			writer.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(writer).Encode(map[string]string{"error": "无效的配置格式"})
+			return
+		}
+
+		// 保存配置到文件
+		configData, err := json.MarshalIndent(newConfig, "", "  ")
+		if err != nil {
+			writer.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(writer).Encode(map[string]string{"error": "配置序列化失败"})
+			return
+		}
+
+		if err := os.WriteFile("./config.json", configData, 0644); err != nil {
+			writer.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(writer).Encode(map[string]string{"error": "保存配置文件失败"})
+			return
+		}
+
+		// 更新内存中的配置
+		config.Conf = newConfig
+
+		writer.WriteHeader(http.StatusOK)
+		json.NewEncoder(writer).Encode(map[string]string{"success": "配置保存成功"})
+	})
+
+	// 运行程序接口 - 实际是启动任务处理
+	http.HandleFunc("/run-program", func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodPost {
+			writer.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		programStatus.mu.Lock()
+		defer programStatus.mu.Unlock()
+
+		if programStatus.isRunning {
+			writer.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(writer).Encode(map[string]string{"error": "任务已经在运行中"})
+			return
+		}
+
+		// 标记任务为运行中
+		programStatus.isRunning = true
+
+		// 启动协程处理任务
+		go func() {
+			defer func() {
+				programStatus.mu.Lock()
+				programStatus.isRunning = false
+				programStatus.mu.Unlock()
+			}()
+
+			// 遍历所有用户并处理任务
+			for _, user := range config.Conf.Users {
+				processUserTask(user)
+				// 为了避免请求过于频繁，每个用户之间间隔1秒
+				time.Sleep(time.Second)
+			}
+		}()
+
+		writer.WriteHeader(http.StatusOK)
+		json.NewEncoder(writer).Encode(map[string]string{"success": "任务已启动"})
+	})
+
+	// 停止程序接口
+	http.HandleFunc("/stop-program", func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodPost {
+			writer.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		programStatus.mu.Lock()
+		defer programStatus.mu.Unlock()
+
+		if !programStatus.isRunning {
+			writer.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(writer).Encode(map[string]string{"error": "任务未在运行中"})
+			return
+		}
+
+		// 清空任务列表以停止任务处理
+		task.Tasks = []task.Task{}
+
+		// 添加一个停止标记文件，供任务处理逻辑检查
+		stopFile := "./stop_flag"
+		if err := os.WriteFile(stopFile, []byte("stop"), 0644); err != nil {
+			logrus.Error("创建停止标记文件失败: ", err)
+		}
+
+		programStatus.isRunning = false
+
+		writer.WriteHeader(http.StatusOK)
+		json.NewEncoder(writer).Encode(map[string]string{"success": "任务已停止"})
+	})
+
+	// 查询程序状态接口
+	http.HandleFunc("/program-status", func(writer http.ResponseWriter, request *http.Request) {
+		programStatus.mu.Lock()
+		defer programStatus.mu.Unlock()
+
+		writer.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(writer).Encode(map[string]bool{"isRunning": programStatus.isRunning})
+	})
+
+	// 查询任务进度接口
+	http.HandleFunc("/task-progress", func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+
+		// 使用task包中的GetProgress函数获取进度
+		total, completed, percentage := task.GetProgress()
+
+		json.NewEncoder(writer).Encode(map[string]interface{}{
+			"total":      total,
+			"completed":  completed,
+			"percentage": percentage,
+		})
+	})
+
+	// 查询用户课程进度接口
+	http.HandleFunc("/user-course-progress", func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+
+		// 使用task包中的GetUserCourseProgress函数获取用户课程进度
+		userProgress := task.GetUserCourseProgress()
+
+		json.NewEncoder(writer).Encode(userProgress)
+	})
+
+	// 读取配置接口
+	http.HandleFunc("/get-config", func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(writer).Encode(config.Conf)
+	})
+
 	logrus.Infof("web端启动成功, 请访问 %s 查看服务状态", config.Conf.Global.Server)
 	err := http.ListenAndServe(config.Conf.Global.Server, nil)
 	if err != nil {
 		logrus.Fatal(err.Error())
 	}
+}
 
+// processUserTask 处理单个用户的课程任务
+func processUserTask(user config.User) {
+	yh := yinghua.New(user)
+
+	err := yh.Login()
+	if err != nil {
+		logrus.Error(fmt.Sprintf("用户 %s 登录失败: %v", user.Username, err))
+		return
+	}
+	yh.Output("登录成功")
+
+	err = yh.GetCourses()
+	if err != nil {
+		logrus.Error(fmt.Sprintf("用户 %s 获取课程列表失败: %v", user.Username, err))
+		return
+	}
+
+	yh.Output(fmt.Sprintf("获取全部在学课程成功, 共计 %d 门\n", len(yh.Courses)))
+
+	// 注：不再清空任务列表，以便累积所有用户的任务
+	// task.Tasks = []task.Task{}
+
+	// 检查是否指定了课程名称
+	if len(user.CourseNames) > 0 {
+		// 根据课程名称筛选课程
+		var selectedCourses []types.CoursesList
+		for _, name := range user.CourseNames {
+			courses, err := yh.GetCourseByName(name)
+			if err != nil {
+				logrus.Error(fmt.Sprintf("查找课程 '%s' 失败: %v", name, err))
+				continue
+			}
+
+			if len(courses) == 0 {
+				logrus.Warn(fmt.Sprintf("未找到课程: '%s'", name))
+			} else {
+				selectedCourses = append(selectedCourses, courses...)
+				yh.Output(fmt.Sprintf("找到课程: '%s', 共 %d 个匹配结果", name, len(courses)))
+			}
+		}
+
+		// 添加筛选后的课程到任务列表
+		for _, course := range selectedCourses {
+			task.Tasks = append(task.Tasks, task.Task{
+				User:   user,
+				Course: course,
+				Status: false,
+			})
+		}
+	} else {
+		// 如果没有指定课程名称，则添加所有课程
+		for _, course := range yh.Courses {
+			task.Tasks = append(task.Tasks, task.Task{
+				User:   user,
+				Course: course,
+				Status: false,
+			})
+		}
+	}
+
+	// 如果任务列表不为空，启动任务处理
+	if len(task.Tasks) > 0 {
+		task.Start()
+	} else {
+		logrus.Warn("没有找到可添加的任务")
+	}
 }

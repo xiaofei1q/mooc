@@ -1,21 +1,7 @@
 {
   "global": {
     "server": ":10086",
-    "limit": 999
+    "limit": 99
   },
-  "users": [
-    {
-      "base_url": "https://test-server.example.com/",
-      "school_id": 0,
-      "username": "test_user1",
-      "password": "test_password1",
-      "course_names": []
-    },{
-      "base_url": "https://test-server.example.com/",
-      "school_id": 0,
-      "username": "test_user2",
-      "password": "test_password2",
-      "course_names": []
-    }
-  ]
+  "users": []
 }
