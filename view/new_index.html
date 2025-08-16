@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>傲星网课助手 - PC配置中心</title>
+    <link rel="shortcut icon" href="https://www.aoaostar.com/favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background-color: #f0f2f5;
+        }
+
+        .header {
+            background-color: #1890ff;
+            color: #fff;
+            padding: 15px 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .config-panel {
+            width: 400px;
+            background-color: #fff;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #ddd;
+        }
+
+        .log-panel {
+            flex: 1;
+            overflow-y: auto;
+            background-color: #1e1e1e;
+            color: #f8f8f2;
+            padding: 1rem;
+            word-break: break-all;
+            white-space: pre-wrap;
+            font-size: 1rem;
+            line-height: 1.5;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .log-info {
+            color: #a6e22e;
+        }
+
+        .log-error {
+            color: #f92672;
+        }
+
+        .log-warning {
+            color: #fd971f;
+        }
+
+        .log-timestamp {
+            color: #66d9ef;
+            font-weight: bold;
+        }
+
+        .progress-panel {
+            width: 350px;
+            overflow-y: auto;
+            background-color: #fff;
+            border-left: 1px solid #ddd;
+            padding: 10px;
+        }
+
+        .user-progress-container {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+
+        .user-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+
+        .course-progress-item {
+            margin-bottom: 8px;
+        }
+
+        .course-progress-bar-container {
+            width: 100%;
+            height: 15px;
+            background-color: #f1f1f1;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 3px;
+        }
+
+        .course-progress-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .course-progress-text {
+            font-size: 0.8rem;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .completed-marker {
+            display: inline-block;
+            background-color: #52c41a;
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #40a9ff;
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #1890ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+
+        .btn:hover {
+            background-color: #40a9ff;
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-stop {
+            background-color: #ff4d4f;
+        }
+
+        .btn-stop:hover {
+            background-color: #ff7875;
+        }
+
+        .btn-delete-completed {
+            background-color: #faad14;
+        }
+
+        .btn-delete-completed:hover {
+            background-color: #ffc53d;
+        }
+
+        .btn-group {
+            margin-top: 20px;
+        }
+
+        .user-config {
+            background-color: #ffffff;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e8e8e8;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .user-config-header {
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        .user-config-content {
+            padding: 20px;
+            display: block;
+        }
+
+        .user-config-content.collapsed {
+            display: none;
+            padding: 0 20px;
+        }
+
+        .collapse-btn {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #666;
+        }
+
+        .user-config:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .add-user-btn {
+            background-color: #52c41a;
+        }
+
+        .add-user-btn:hover {
+            background-color: #73d13d;
+        }
+
+        .user-completed-marker {
+            display: inline-block;
+            background-color: #52c41a;
+            color: white;
+            font-size: 0.8rem;
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-weight: bold;
+            width: 100%;
+            text-align: center;
+        }        
+
+        .add-user-btn {
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .remove-user-btn {
+            background-color: #ff4d4f;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .remove-user-btn:hover {
+            background-color: #ff7875;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .status-running {
+            background-color: #52c41a;
+        }
+
+        .status-stopped {
+            background-color: #ff4d4f;
+        }
+
+        .top-btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .top-btn-group .btn {
+            flex: 1;
+            min-width: 120px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>傲星网课助手 - PC配置中心</div>
+        <div id="status-display">
+            <span class="status-indicator status-stopped"></span>
+            <span id="status-text">已停止</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="config-panel">
+            <h3>全局配置</h3>
+            <div class="form-group">
+                <label for="server">服务器地址</label>
+                <input type="text" id="server" name="server" value=":10086" placeholder=":10086">
+            </div>
+            <div class="form-group">
+                <label for="limit">协程数</label>
+                <input type="number" id="limit" name="limit" value="999" min="1" max="999">
+            </div>
+
+            <div class="top-btn-group">
+                <button class="btn add-user-btn" onclick="addUser()">添加用户</button>
+                <button class="btn" onclick="saveConfig()">保存配置</button>
+                <button class="btn" onclick="runProgram()">运行程序</button>
+                <button class="btn btn-stop" onclick="stopProgram()">停止程序</button>
+                <button class="btn btn-delete-completed" onclick="deleteCompletedUsers()">一键删除已完成用户</button>
+            </div>
+
+            <h3>用户配置</h3>
+            <div id="users-container">
+                <div class="user-config" data-index="0">
+                    <div class="user-config-header" onclick="toggleUserConfig(0)">
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <h4>用户 1</h4>
+                            <span style="color: #666; font-size: 12px;">ID: 0</span>
+                        </div>
+                        <button class="collapse-btn" onclick="toggleUserConfig(0); event.stopPropagation();">-</button>
+                    </div>
+                    <div class="user-config-content" id="user-config-content-0">
+                        <div class="form-group">
+                            <label for="base_url_0">Base URL</label>
+                            <input type="text" id="base_url_0" name="base_url" value="https://test-server.example.com/" placeholder="https://example.com/">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="username_0">用户名</label>
+                            <input type="text" id="username_0" name="username" placeholder="输入用户名">
+                        </div>
+                        <div class="form-group">
+                            <label for="password_0">密码</label>
+                            <input type="password" id="password_0" name="password" placeholder="输入密码">
+                        </div>
+                        <div class="form-group">
+                            <label for="course_names_0">课程名称（逗号分隔）</label>
+                            <textarea id="course_names_0" name="course_names" placeholder="例如: 高等数学,大学物理"></textarea>
+                        </div>
+                        <button class="btn remove-user-btn" onclick="removeUser(0)">删除用户</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="log-panel" id="log-panel">
+            日志将显示在这里...
+        </div>
+        <div class="progress-panel" id="progress-panel">
+            <h3>用户课程进度</h3>
+            <div id="user-progress-container"></div>
+        </div>
+    </div>
+
+    <script>
+        // 用户计数器
+        let userCount = 1;
+        let progressInterval;
+
+        // 添加用户配置表单
+        function addUser() {
+            const container = document.getElementById('users-container');
+            const index = userCount++;
+
+            const userConfig = document.createElement('div');
+            userConfig.className = 'user-config';
+            userConfig.dataset.index = index;
+
+            userConfig.innerHTML = `
+                <div class="user-config-header" onclick="toggleUserConfig(${index})">
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <h4>用户 ${index + 1}</h4>
+                        <span style="color: #666; font-size: 12px;">ID: ${index}</span>
+                    </div>
+                    <button class="collapse-btn" onclick="toggleUserConfig(${index}); event.stopPropagation();">-</button>
+                </div>
+                <div class="user-config-content" id="user-config-content-${index}">
+                    <div class="form-group">
+                        <label for="base_url_${index}">Base URL</label>
+                        <input type="text" id="base_url_${index}" name="base_url" value="https://test-server.example.com/" placeholder="https://example.com/">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="username_${index}">用户名</label>
+                        <input type="text" id="username_${index}" name="username" placeholder="输入用户名">
+                    </div>
+                    <div class="form-group">
+                        <label for="password_${index}">密码</label>
+                        <input type="password" id="password_${index}" name="password" placeholder="输入密码">
+                    </div>
+                    <div class="form-group">
+                        <label for="course_names_${index}">课程名称（逗号分隔）</label>
+                        <textarea id="course_names_${index}" name="course_names" placeholder="例如: 高等数学,大学物理"></textarea>
+                    </div>
+                    <button class="btn remove-user-btn" onclick="removeUser(${index})">删除用户</button>
+                </div>
+            `;
+
+            // 将新用户表单插入到容器的第一个位置
+            if (container.firstChild) {
+                container.insertBefore(userConfig, container.firstChild);
+            } else {
+                container.appendChild(userConfig);
+            }
+        }
+
+        // 切换用户配置折叠状态
+        function toggleUserConfig(index) {
+            const content = document.getElementById(`user-config-content-${index}`);
+            const collapseBtn = document.querySelector(`.user-config[data-index="${index}"] .collapse-btn`);
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                collapseBtn.textContent = '-';
+            } else {
+                content.classList.add('collapsed');
+                collapseBtn.textContent = '+';
+            }
+        }
+
+        // 删除用户配置表单
+        function removeUser(index) {
+            const container = document.getElementById('users-container');
+            const userConfig = document.querySelector(`.user-config[data-index="${index}"]`);
+            if (userConfig) {
+                container.removeChild(userConfig);
+            }
+        }
+
+        // 一键删除已完成所有课程的用户
+        function deleteCompletedUsers() {
+            // 查找所有已完成用户的配置项
+            const completedUsers = document.querySelectorAll('.user-config .user-completed-marker');
+            
+            // 如果没有已完成的用户，显示提示
+            if (completedUsers.length === 0) {
+                alert('没有已完成所有课程的用户');
+                return;
+            }
+            
+            // 确认是否删除
+            if (confirm(`确定要删除${completedUsers.length}个已完成所有课程的用户吗？`)) {
+                // 遍历并删除已完成用户
+                completedUsers.forEach(marker => {
+                    const userConfig = marker.closest('.user-config');
+                    if (userConfig) {
+                        const index = userConfig.dataset.index;
+                        removeUser(index);
+                    }
+                });
+                
+                // 保存配置
+                saveConfig();
+                
+                // 显示删除成功提示
+                alert(`成功删除${completedUsers.length}个已完成所有课程的用户`);
+            }
+        }
+
+        // 保存配置
+        function saveConfig() {
+            const config = {
+                global: {
+                    server: document.getElementById('server').value,
+                    limit: parseInt(document.getElementById('limit').value)
+                },
+                users: []
+            };
+
+            // 收集所有用户配置
+            const userConfigs = document.querySelectorAll('.user-config');
+            userConfigs.forEach(userConfig => {
+                const index = userConfig.dataset.index;
+                const courseNames = document.getElementById(`course_names_${index}`).value
+                    .split(',').map(name => name.trim()).filter(name => name);
+
+                config.users.push({
+                    base_url: document.getElementById(`base_url_${index}`).value,
+                    school_id: 0,
+                    username: document.getElementById(`username_${index}`).value,
+                    password: document.getElementById(`password_${index}`).value,
+                    course_names: courseNames
+                });
+            });
+
+            // 发送配置到后端
+            fetch('/save-config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(config)
+            }).then(response => {
+                if (response.ok) {
+                    alert('配置保存成功!');
+                } else {
+                    alert('配置保存失败!');
+                }
+            }).catch(error => {
+                console.error('保存配置出错:', error);
+                alert('配置保存失败!');
+            });
+        }
+
+        // 运行程序
+        function runProgram() {
+            fetch('/run-program', {
+                method: 'POST'
+            }).then(response => {
+                if (response.ok) {
+                    updateStatus(true);
+                    alert('程序已启动!');
+                    
+                    // 开始定期获取进度
+                    if (progressInterval) {
+                        clearInterval(progressInterval);
+                    }
+                    progressInterval = setInterval(() => {
+                        updateUserCourseProgress();
+                    }, 1000);
+                } else {
+                    alert('程序启动失败!');
+                }
+            }).catch(error => {
+                console.error('启动程序出错:', error);
+                alert('程序启动失败!');
+            });
+        }
+
+        // 停止程序
+        function stopProgram() {
+            fetch('/stop-program', {
+                method: 'POST'
+            }).then(response => {
+                if (response.ok) {
+                    updateStatus(false);
+                    // 清除进度更新定时器
+                    if (progressInterval) {
+                        clearInterval(progressInterval);
+                        progressInterval = null;
+                    }
+                    alert('程序已停止!');
+                } else {
+                    alert('程序停止失败!');
+                }
+            }).catch(error => {
+                console.error('停止程序出错:', error);
+                alert('程序停止失败!');
+            });
+        }
+
+        // 更新用户课程进度
+        function updateUserCourseProgress() {
+            fetch('/user-course-progress')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('user-progress-container');
+                    
+                    // 保存当前的展开状态
+                    const expandedUsers = {};
+                    const userContainers = container.querySelectorAll('.user-progress-container');
+                    userContainers.forEach(userContainer => {
+                        const userId = userContainer.querySelector('.user-title').textContent.replace('用户: ', '');
+                        const detailContainer = userContainer.querySelector('.detail-progress-container');
+                        if (detailContainer && detailContainer.style.display !== 'none') {
+                            expandedUsers[userId] = true;
+                        }
+                    });
+                    
+                    // 清空容器
+                    container.innerHTML = '';
+                    
+                    // 定义不同用户的颜色
+                    const userColors = [
+                        '#E0F7FA', // 浅青色
+                        '#E8F5E9', // 浅绿色
+                        '#FFF8E1', // 浅黄色
+                        '#F3E5F5', // 浅紫色
+                        '#FFEBEE', // 浅红色
+                        '#E0E0E0', // 浅灰色
+                        '#E3F2FD', // 浅蓝色
+                        '#FFF3E0', // 浅橙色
+                        '#F1F8E9', // 浅绿色2
+                        '#FBE9E7'  // 浅红色2
+                    ];
+                    
+                    // 获取所有用户ID并排序，确保颜色分配一致
+                    const userIds = Object.keys(data).sort();
+                    
+                    // 遍历每个用户
+                    userIds.forEach((userId, index) => {
+                        const userProgress = data[userId];
+                        
+                        // 选择用户颜色 (循环使用预定义颜色)
+                        const colorIndex = index % userColors.length;
+                        const userColor = userColors[colorIndex];
+                        
+                        // 创建用户进度容器
+                        const userContainer = document.createElement('div');
+                        userContainer.className = 'user-progress-container';
+                        userContainer.style.backgroundColor = userColor;
+                        userContainer.style.borderLeft = `4px solid ${getDarkerColor(userColor)}`;
+                        
+                        // 创建用户标题
+                        const userTitle = document.createElement('div');
+                        userTitle.className = 'user-title';
+                        userTitle.textContent = `用户: ${userId}`;
+                        userContainer.appendChild(userTitle);
+                        
+                        // 计算用户整体课程完成进度
+                        let totalProgress = 0;
+                        let courseCount = 0;
+                        let completedCourses = 0;
+                        
+                        for (const courseId in userProgress) {
+                            if (userProgress.hasOwnProperty(courseId)) {
+                                const course = userProgress[courseId];
+                                totalProgress += course.Progress;
+                                courseCount++;
+                                if (course.Progress === 100) {
+                                    completedCourses++;
+                                }
+                            }
+                        }
+                        
+                        const overallProgress = courseCount > 0 ? Math.round(totalProgress / courseCount) : 0;
+                        
+                        // 检查用户是否所有课程都已完成
+                        const isUserCompleted = completedCourses === courseCount && courseCount > 0;
+
+                        // 更新用户配置中的已完成标志
+                        const userConfig = document.querySelector(`.user-config[data-index="${index}"]`);
+                        if (userConfig) {
+                            // 移除已存在的已完成标志
+                            const existingMarker = userConfig.querySelector('.user-completed-marker');
+                            if (existingMarker) {
+                                existingMarker.remove();
+                            }
+
+                            // 如果用户所有课程都已完成，添加已完成标志
+                            if (isUserCompleted) {
+                                const completedMarker = document.createElement('div');
+                                completedMarker.className = 'user-completed-marker';
+                                completedMarker.textContent = '用户已完成所有课程';
+
+                                // 找到删除用户按钮，并在其下方添加标志
+                                const removeBtn = userConfig.querySelector('.remove-user-btn');
+                                if (removeBtn) {
+                                    removeBtn.parentNode.appendChild(completedMarker);
+                                }
+                            }
+                        }
+
+                        // 创建整体进度展示
+                        const overallProgressContainer = document.createElement('div');
+                        overallProgressContainer.className = 'overall-progress-container';
+                        
+                        // 创建整体进度文本
+                        const overallProgressText = document.createElement('div');
+                        overallProgressText.className = 'course-progress-text';
+                        overallProgressText.innerHTML = `
+                            <span>整体进度</span>
+                            <span>${overallProgress}% (${completedCourses}/${courseCount})</span>
+                        `;
+                        overallProgressContainer.appendChild(overallProgressText);
+                        
+                        // 创建整体进度条容器
+                        const overallProgressBarContainer = document.createElement('div');
+                        overallProgressBarContainer.className = 'course-progress-bar-container';
+                        
+                        // 创建整体进度条
+                        const overallProgressBar = document.createElement('div');
+                        overallProgressBar.className = 'course-progress-bar';
+                        overallProgressBar.style.width = `${overallProgress}%`;
+                        
+                        // 根据整体进度设置颜色
+                        if (overallProgress === 100) {
+                            overallProgressBar.style.backgroundColor = '#52c41a'; // 绿色
+                        } else if (overallProgress >= 50) {
+                            overallProgressBar.style.backgroundColor = '#1890ff'; //  blue
+                        } else {
+                            overallProgressBar.style.backgroundColor = '#faad14'; // 橙色
+                        }
+                        
+                        overallProgressBarContainer.appendChild(overallProgressBar);
+                        overallProgressContainer.appendChild(overallProgressBarContainer);
+                        
+                        userContainer.appendChild(overallProgressContainer);
+                        
+                        // 创建详细进度容器
+                        const detailProgressContainer = document.createElement('div');
+                        detailProgressContainer.className = 'detail-progress-container';
+                        // 根据保存的状态设置显示状态
+                        detailProgressContainer.style.display = expandedUsers[userId] ? 'block' : 'none';
+                        
+                        // 添加展开/收起按钮
+                        const toggleButton = document.createElement('button');
+                        toggleButton.className = 'btn';
+                        toggleButton.textContent = expandedUsers[userId] ? '收起详细进度' : '展开详细进度';
+                        toggleButton.style.marginTop = '10px';
+                        toggleButton.style.marginBottom = '10px';
+                        toggleButton.onclick = function() {
+                            if (detailProgressContainer.style.display === 'none') {
+                                detailProgressContainer.style.display = 'block';
+                                toggleButton.textContent = '收起详细进度';
+                            } else {
+                                detailProgressContainer.style.display = 'none';
+                                toggleButton.textContent = '展开详细进度';
+                            }
+                        };
+                        
+                        userContainer.appendChild(toggleButton);
+                        
+                        // 遍历用户的每个课程
+                        for (const courseId in userProgress) {
+                            if (userProgress.hasOwnProperty(courseId)) {
+                                const course = userProgress[courseId];
+                                
+                                // 创建课程进度项
+                                const courseItem = document.createElement('div');
+                                courseItem.className = 'course-progress-item';
+                                
+                                // 创建课程进度文本
+                                const courseText = document.createElement('div');
+                                courseText.className = 'course-progress-text';
+                                courseText.innerHTML = `
+                                    <span>${course.CourseName}</span>
+                                    <span>${Math.round(course.Progress)}% (${course.Status})</span>
+                                `;
+                                courseItem.appendChild(courseText);
+                                
+                                // 创建课程进度条容器
+                                const progressBarContainer = document.createElement('div');
+                                progressBarContainer.className = 'course-progress-bar-container';
+                                
+                                // 创建课程进度条
+                                const progressBar = document.createElement('div');
+                                progressBar.className = 'course-progress-bar';
+                                
+                                // 根据进度设置颜色
+                                if (course.Progress === 100) {
+                                    progressBar.style.backgroundColor = '#52c41a'; // 绿色
+                                    // 添加已完成标记
+                                    const completedMarker = document.createElement('div');
+                                    completedMarker.className = 'completed-marker';
+                                    completedMarker.textContent = '已完成';
+                                    courseItem.appendChild(completedMarker);
+                                } else if (course.Status === 'failed') {
+                                    progressBar.style.backgroundColor = '#ff4d4f'; // 红色
+                                } else if (course.Status === 'in_progress') {
+                                    progressBar.style.backgroundColor = '#1890ff'; // 蓝色
+                                } else {
+                                    progressBar.style.backgroundColor = '#faad14'; // 橙色
+                                }
+                                
+                                progressBar.style.width = `${course.Progress}%`;
+                                progressBarContainer.appendChild(progressBar);
+                                courseItem.appendChild(progressBarContainer);
+                                
+                                detailProgressContainer.appendChild(courseItem);
+                            }
+                        }
+                        
+                        userContainer.appendChild(detailProgressContainer);
+                        
+                        container.appendChild(userContainer);
+                    });
+                })
+                .catch(error => {
+                    console.error('获取用户课程进度失败:', error);
+                });
+        }
+
+        // 获取颜色的深色调
+        function getDarkerColor(color) {
+            // 简单的颜色加深函数
+            // 移除#号
+            color = color.replace('#', '');
+            
+            // 转换为RGB
+            let r = parseInt(color.substring(0, 2), 16);
+            let g = parseInt(color.substring(2, 4), 16);
+            let b = parseInt(color.substring(4, 6), 16);
+            
+            // 降低亮度 (乘以0.7)
+            r = Math.floor(r * 0.7);
+            g = Math.floor(g * 0.7);
+            b = Math.floor(b * 0.7);
+            
+            // 转换回十六进制
+            const toHex = (c) => {
+                const hex = c.toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            };
+            
+            return '#' + toHex(r) + toHex(g) + toHex(b);
+        }
+        
+
+        // 更新状态显示
+        function updateStatus(isRunning) {
+            const indicator = document.querySelector('.status-indicator');
+            const text = document.getElementById('status-text');
+
+            if (isRunning) {
+                indicator.className = 'status-indicator status-running';
+                text.textContent = '运行中';
+            } else {
+                indicator.className = 'status-indicator status-stopped';
+                text.textContent = '已停止';
+            }
+        }
+
+        // 定义账号颜色映射
+        const userIdColors = {};
+        const availableColors = [
+            '#1890ff', // 蓝色
+            '#52c41a', // 绿色
+            '#faad14', // 橙色
+            '#722ed1', // 紫色
+            '#f5222d', // 红色
+            '#13c2c2', // 青色
+            '#fa8c16', // 黄橙色
+            '#a0d911', // 绿黄色
+            '#eb2f96', // 粉色
+            '#597ef7'  // 靛蓝色
+        ];
+        let colorIndex = 0;
+        
+        // 获取账号颜色
+        function getUserIdColor(userId) {
+            if (!userIdColors[userId]) {
+                userIdColors[userId] = availableColors[colorIndex % availableColors.length];
+                colorIndex++;
+            }
+            return userIdColors[userId];
+        }
+        
+        // 实时更新日志
+        function updateLog() {
+            fetch('/ajax').then(async resp => {
+                const logPanel = document.getElementById('log-panel');
+                let logText = await resp.text();
+                
+                // 移除ANSI转义序列和特殊字符
+                logText = logText
+                    // 移除ANSI转义序列 (如: \x1B[32m)
+                    .replace(/\x1B\[[0-9;]*m/g, '')
+                    // 移除特殊字符 ''
+                    .replace(/\x1B/g, '')
+                    // 为时间戳添加样式
+                    .replace(/\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]/g, '<span class="log-timestamp">[$1]</span>')
+                    // 为账号ID添加颜色样式
+                    .replace(/\[(\d+)\]/g, (match, userId) => {
+                        const color = getUserIdColor(userId);
+                        return `<span style="color: ${color};">[${userId}]</span>`;
+                    })
+                    // 为协程ID中的账号添加颜色样式
+                    .replace(/\[协程ID=\d+\]\[(\d+)\]/g, (match, userId) => {
+                        const color = getUserIdColor(userId);
+                        return match.replace(`[${userId}]`, `<span style="color: ${color};">[${userId}]</span>`);
+                    })
+                    // 为信息日志添加样式
+                    .replace(/\[info\]/g, '<span class="log-info">[info]</span>')
+                    // 为错误日志添加样式
+                    .replace(/\[error\]/g, '<span class="log-error">[error]</span>')
+                    // 为警告日志添加样式
+                    .replace(/\[warn\]/g, '<span class="log-warning">[warn]</span>')
+                    // 为成功日志添加样式
+                    .replace(/\[success\]/g, '<span class="log-info">[success]</span>');
+                
+                logPanel.innerHTML = logText;
+                logPanel.scrollTop = logPanel.scrollHeight;
+            }).finally(() => {
+                setTimeout(updateLog, 1000);
+            });
+        }
+
+        // 检查程序状态
+        function checkStatus() {
+            fetch('/program-status').then(async resp => {
+                const status = await resp.json();
+                updateStatus(status.isRunning);
+            }).finally(() => {
+                setTimeout(checkStatus, 2000);
+            });
+        }
+
+        // 加载配置
+        function loadConfig() {
+            fetch('/get-config')
+                .then(response => response.json())
+                .then(config => {
+                    // 填充全局配置
+                    document.getElementById('server').value = config.global.server;
+                    document.getElementById('limit').value = config.global.limit;
+                    
+                    // 清空现有用户配置
+                    const usersContainer = document.getElementById('users-container');
+                    usersContainer.innerHTML = '';
+                    userCount = 0;
+                    
+                    // 填充用户配置
+                    config.users.forEach((user, index) => {
+                        addUser();
+                        
+                        // 设置用户配置值
+                        document.getElementById(`base_url_${index}`).value = user.base_url || 'https://test-server.example.com/';
+                        document.getElementById(`username_${index}`).value = user.username || '';
+                        document.getElementById(`password_${index}`).value = user.password || '';
+                        document.getElementById(`course_names_${index}`).value = user.course_names ? user.course_names.join(', ') : '';
+                    });
+                })
+                .catch(error => {
+                    console.error('加载配置失败:', error);
+                });
+        }
+
+        // 初始化
+        updateLog();
+        checkStatus();
+        loadConfig();
+    </script>
+</body>
+</html>

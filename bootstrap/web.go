@@ -33,22 +33,54 @@ var (
 // InitWeb 初始化Web服务
 func InitWeb() {
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-
-		file, err := os.Open("./view/index.html")
-		if err != nil {
-			logrus.Fatal(err.Error())
+		// 获取User-Agent头信息
+		userAgent := strings.ToLower(request.UserAgent())
+		
+		// 检测是否为移动设备
+		isMobile := false
+		mobileKeywords := []string{"mobile", "android", "iphone", "ipad", "windows phone", "blackberry", "opera mini", "webos"}
+		
+		for _, keyword := range mobileKeywords {
+			if strings.Contains(userAgent, keyword) {
+				isMobile = true
+				break
+			}
 		}
+		
+		// 根据设备类型选择对应的页面
+		var filePath string
+		if isMobile {
+			filePath = "./view/mobile_index.html"
+		} else {
+			filePath = "./view/new_index.html"
+		}
+
+		file, err := os.Open(filePath)
+		if err != nil {
+			logrus.Error("无法打开文件: ", err)
+			http.Error(writer, "页面未找到", http.StatusNotFound)
+			return
+		}
+		defer file.Close()
+
 		readAll, err := io.ReadAll(file)
-
 		if err != nil {
-			logrus.Fatal(err.Error())
+			logrus.Error("读取文件失败: ", err)
+			http.Error(writer, "内部服务器错误", http.StatusInternalServerError)
+			return
 		}
+
 		_, err = writer.Write(readAll)
-
 		if err != nil {
-			logrus.Fatal(err.Error())
+			logrus.Error("写入响应失败: ", err)
+			http.Error(writer, "内部服务器错误", http.StatusInternalServerError)
+			return
 		}
+	})
 
+	http.HandleFunc("/mobile_index.html", func(writer http.ResponseWriter, request *http.Request) {
+		// 设置响应头
+		http.ServeFile(writer, request, "view/mobile_index.html")
 	})
 	http.HandleFunc("/ajax", func(writer http.ResponseWriter, request *http.Request) {
 		// 获取当前日期，格式为2006-01-02
